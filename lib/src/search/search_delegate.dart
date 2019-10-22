@@ -1,21 +1,22 @@
 import 'package:flutter/material.dart';
+import 'package:peliculas/src/models/pelicula_model.dart';
+import 'package:peliculas/src/providers/peliculas_provider.dart';
 
-class DataSearch implements SearchDelegate {
-  @override
-  String query;
+class DataSearch extends SearchDelegate {
 
-  @override
-  ThemeData appBarTheme(BuildContext context) {
-    assert(context != null);
-    final ThemeData theme = Theme.of(context);
-    assert(theme != null);
-    return theme.copyWith(
-      primaryColor: Colors.white,
-      primaryIconTheme: theme.primaryIconTheme.copyWith(color: Colors.grey),
-      primaryColorBrightness: Brightness.light,
-      primaryTextTheme: theme.textTheme,
-    );
-  }
+  String seleccion = '';
+  final peliculasProvider = new PeliculasProvider();
+
+  final peliculas = [
+    'Spiderman',
+    'Aquaman',
+    'Batman',
+    'Shazam!',
+    'IronMan',
+    'Capitan America'
+  ];
+
+  final peliculasRecientes = ['Spiderman', 'Capitan America'];
 
   @override
   List<Widget> buildActions(BuildContext context) {
@@ -24,7 +25,7 @@ class DataSearch implements SearchDelegate {
       IconButton(
         icon: Icon(Icons.clear),
         onPressed: () {
-          print('CLICK!!!');
+          query = '';
         },
       )
     ];
@@ -39,6 +40,7 @@ class DataSearch implements SearchDelegate {
         progress: transitionAnimation,
       ),
       onPressed: () {
+        close(context, null);
         print('Leading Icon Press');
       },
     );
@@ -47,43 +49,78 @@ class DataSearch implements SearchDelegate {
   @override
   Widget buildResults(BuildContext context) {
     // Crea los resultados que vamos a mostrar
-    return Container();
+    return Center(
+      child: Container(
+        height: 100.0,
+        width: 100.0,
+        color: Colors.blueAccent,
+        child: Text(seleccion),
+      ),
+    );
   }
 
   @override
   Widget buildSuggestions(BuildContext context) {
     // son las sugerencias que aparecen que la persona escribe
-    return Container();
+    if ( query.isEmpty ){
+      return Container();
+    }
+
+    return  FutureBuilder(
+      future: peliculasProvider.buscarPelicula(query),
+      builder: (BuildContext context, AsyncSnapshot<List<Pelicula>> snapshot) {
+        if ( snapshot.hasData ) {
+          
+          final peliculas = snapshot.data;
+
+          return ListView(
+            children: peliculas.map( (pelicula){
+              return ListTile(
+                leading: FadeInImage(
+                  image: NetworkImage(pelicula.getPosterImg()),
+                  placeholder: AssetImage('assets/img/no-image.jpg'),
+                  width: 50.0,
+                  fit: BoxFit.contain,
+                ),
+                title: Text(pelicula.title),
+                subtitle: Text(pelicula.originalTitle),
+                onTap: (){
+                  close(context, null);
+                  pelicula.uniqueId = '';
+                  Navigator.pushNamed(context, 'detalle',arguments: pelicula);
+                },
+              );
+            }).toList()
+          );
+        } else {
+          return Center(child: CircularProgressIndicator(),);
+        }
+      },
+    );
   }
 
-  @override
-  void close(BuildContext context, result) {
-    // TODO: implement close
-  }
+  // @override
+  // Widget buildSuggestions(BuildContext context) {
+  //   // son las sugerencias que aparecen que la persona escribe
 
-  @override
-  //
-  TextInputType get keyboardType => TextInputType.numberWithOptions();
+  //   final listaSugerida = (query.isEmpty)
+  //       ? peliculasRecientes
+  //       : peliculas
+  //           .where((p) => p.toLowerCase().startsWith(query.toLowerCase()))
+  //           .toList();
 
-  @override
-  //
-  String get searchFieldLabel => 'Nombre pelicula';
-
-  @override
-  void showResults(BuildContext context) {
-    // TODO: implement showResults
-  }
-
-  @override
-  void showSuggestions(BuildContext context) {
-    // TODO: implement showSuggestions
-  }
-
-  @override
-  //
-  TextInputAction get textInputAction => TextInputAction.done;
-
-  @override
-  // TODO: implement transitionAnimation
-  Animation<double> get transitionAnimation => null;
+  //   return ListView.builder(
+  //     itemCount: listaSugerida.length,
+  //     itemBuilder: (context, i) {
+  //       return ListTile(
+  //         leading: Icon(Icons.movie),
+  //         title: Text(listaSugerida[i]),
+  //         onTap: () {
+  //           seleccion = listaSugerida[i];
+  //           showResults(context);
+  //         },
+  //       );
+  //     },
+  //   );
+  // }
 }
